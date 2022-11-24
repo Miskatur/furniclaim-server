@@ -1,6 +1,6 @@
 const express = require('express')
 const cors = require('cors')
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
 
@@ -19,7 +19,22 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 async function run() {
     try {
+        const categoriesCollection = client.db('furniClaim').collection('categories');
 
+
+
+        app.get('/categories', async (req, res) => {
+            const query = {};
+            const result = await categoriesCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        app.get('/categories/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const result = await categoriesCollection.findOne(filter)
+            res.send(result)
+        })
     }
     finally {
 
