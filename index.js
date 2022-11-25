@@ -20,7 +20,8 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         const categoriesCollection = client.db('furniClaim').collection('categories');
-
+        const productsCollection = client.db('furniClaim').collection('products');
+        const usersCollection = client.db('furniClaim').collection('users');
 
 
         app.get('/categories', async (req, res) => {
@@ -33,6 +34,20 @@ async function run() {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) }
             const result = await categoriesCollection.findOne(filter)
+            res.send(result)
+        })
+
+        app.get('/products/:name', async (req, res) => {
+            const name = req.params.name;
+            const filter = { category: name }
+            const products = await productsCollection.find(filter).toArray()
+            res.send(products)
+        })
+
+
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+            const result = await usersCollection.insertOne(user)
             res.send(result)
         })
     }
