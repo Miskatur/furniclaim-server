@@ -37,6 +37,7 @@ async function run() {
         const categoriesCollection = client.db('furniClaim').collection('categories');
         const productsCollection = client.db('furniClaim').collection('products');
         const usersCollection = client.db('furniClaim').collection('users');
+        const OrdersCollectcion = client.db('furniClaim').collection('orders');
 
         app.post('/jwt', async (req, res) => {
             const user = req.body;
@@ -94,6 +95,13 @@ async function run() {
             const result = await usersCollection.insertOne(user)
             res.send(result)
         })
+
+        app.post('/orders', async (req, res) => {
+            const order = req.body;
+            const result = await OrdersCollectcion.insertOne(order)
+            res.send(result)
+        })
+
 
 
     }
