@@ -14,11 +14,11 @@ app.use(express.json())
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster1.lgwxtbx.mongodb.net/?retryWrites=true&w=majority`;
-console.log(uri)
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 function verifyJWT(req, res, next) {
     const authHeader = req.headers.authorization;
+    console.log(authHeader)
     if (!authHeader) {
         return res.status(401).send({ message: 'Unauthorized Access' })
     }
@@ -64,6 +64,13 @@ async function run() {
             res.send(products)
         })
 
+        app.get('/products/:email', async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email }
+            const result = await productsCollection.find(filter).toArray()
+            res.send(result)
+        })
+
         app.get('/products/:name', async (req, res) => {
             const name = req.params.name;
             const filter = { category: name }
@@ -99,6 +106,13 @@ async function run() {
         app.post('/orders', async (req, res) => {
             const order = req.body;
             const result = await OrdersCollectcion.insertOne(order)
+            res.send(result)
+        })
+
+        app.get('/orders', async (req, res) => {
+            const email = req.query.email;
+            const filter = { clientEmail: email }
+            const result = await OrdersCollectcion.find(filter).toArray()
             res.send(result)
         })
 
