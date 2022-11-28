@@ -39,7 +39,6 @@ async function run() {
         const productsCollection = client.db('furniClaim').collection('products');
         const usersCollection = client.db('furniClaim').collection('users');
         const OrdersCollectcion = client.db('furniClaim').collection('orders');
-        const advCollection = client.db('furniClaim').collection('advertisements');
 
         app.post('/jwt', async (req, res) => {
             const user = req.body;
@@ -203,6 +202,20 @@ async function run() {
             const email = req.query.email;
             const filter = { clientEmail: email }
             const result = await OrdersCollectcion.find(filter).toArray()
+            res.send(result)
+        })
+
+        app.put('/reportproduct/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true }
+            const updatedDoc = {
+                $set: {
+                    report: true
+                }
+            }
+
+            const result = await productsCollection.updateOne(filter, updatedDoc, options)
             res.send(result)
         })
 
