@@ -156,6 +156,7 @@ async function run() {
             res.send(result)
         })
 
+
         app.put('/users/admin/seller/verify/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) }
@@ -173,7 +174,24 @@ async function run() {
 
         })
 
+        app.get('/users/admin/buyer', async (req, res) => {
+            const filter = { role: 'Buyer' }
+            const result = await usersCollection.find(filter).toArray()
+            res.send(result)
+        })
+        app.get('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const result = await usersCollection.findOne(filter)
+            res.send(result)
+        })
 
+        app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const result = await usersCollection.deleteOne(filter)
+            res.send(result)
+        })
 
         app.post('/orders', async (req, res) => {
             const order = req.body;
