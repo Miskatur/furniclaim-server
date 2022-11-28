@@ -111,9 +111,9 @@ async function run() {
             const result = await productsCollection.updateOne(filter, updatedDoc, options)
             res.send(result)
         })
-        app.patch(`/userverify/:name`, async (req, res) => {
-            const name = req.params.name;
-            const filter = { sellerName: name }
+        app.put(`/userverify/:id`, async (req, res) => {
+            const id = req.params.id;
+            const filter = { sellerId: id }
             const updatedDoc = {
                 $set: {
                     verified: true
