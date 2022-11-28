@@ -32,12 +32,14 @@ function verifyJWT(req, res, next) {
     })
 }
 
+
 async function run() {
     try {
         const categoriesCollection = client.db('furniClaim').collection('categories');
         const productsCollection = client.db('furniClaim').collection('products');
         const usersCollection = client.db('furniClaim').collection('users');
         const OrdersCollectcion = client.db('furniClaim').collection('orders');
+        const advCollection = client.db('furniClaim').collection('advertisements');
 
         app.post('/jwt', async (req, res) => {
             const user = req.body;
@@ -63,11 +65,23 @@ async function run() {
             const products = await productsCollection.find(query).sort({ "_id": -1 }).toArray();
             res.send(products)
         })
+        app.get('/product', async (req, res) => {
+            const query = {};
+            const products = await productsCollection.find(query).sort({ "_id": -1 }).toArray();
+            res.send(products)
+        })
 
-        app.get('/products/:email', async (req, res) => {
+        app.get('/product/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
             const filter = { email: email }
             const result = await productsCollection.find(filter).toArray()
+            res.send(result)
+        })
+
+        app.delete('/product/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const result = await productsCollection.deleteOne(filter)
             res.send(result)
         })
 
@@ -81,6 +95,39 @@ async function run() {
         app.post('/products', async (req, res) => {
             const product = req.body;
             const result = await productsCollection.insertOne(product)
+            res.send(result)
+        })
+
+        app.put('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true }
+            const updatedDoc = {
+                $set: {
+                    advertise: true
+                }
+            }
+
+            const result = await productsCollection.updateOne(filter, updatedDoc, options)
+            res.send(result)
+        })
+        app.patch(`/userverify/:name`, async (req, res) => {
+            const name = req.params.name;
+            const filter = { sellerName: name }
+            const updatedDoc = {
+                $set: {
+                    verified: true
+                }
+            }
+
+            const result = await productsCollection.updateMany(filter, updatedDoc)
+            res.send(result)
+
+        })
+
+        app.get('/advproduct', async (req, res) => {
+            const filter = { advertise: true }
+            const result = await productsCollection.find(filter).sort({ "_id": -1 }).limit(3).toArray()
             res.send(result)
         })
 
@@ -102,6 +149,31 @@ async function run() {
             const result = await usersCollection.insertOne(user)
             res.send(result)
         })
+
+        app.get('/users/admin/seller', async (req, res) => {
+            const filter = { role: 'Seller' }
+            const result = await usersCollection.find(filter).toArray()
+            res.send(result)
+        })
+
+        app.put('/users/admin/seller/verify/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true }
+            const updatedDoc = {
+                $set: {
+                    verified: true
+                }
+            }
+
+            // const result = await productsCollection.updateOne(filter, updatedDoc)
+            const result = await usersCollection.updateOne(filter, updatedDoc, options)
+
+            res.send(result)
+
+        })
+
+
 
         app.post('/orders', async (req, res) => {
             const order = req.body;
