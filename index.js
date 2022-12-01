@@ -205,6 +205,13 @@ async function run() {
             res.send(result)
         })
 
+        app.delete('/order/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const result = await OrdersCollectcion.deleteOne(filter)
+            res.send(result)
+        })
+
         app.put('/reportproduct/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
@@ -216,6 +223,12 @@ async function run() {
             }
 
             const result = await productsCollection.updateOne(filter, updatedDoc, options)
+            res.send(result)
+        })
+
+        app.get('/reporteditems', async (req, res) => {
+            const query = { report: true }
+            const result = await productsCollection.find(query).toArray()
             res.send(result)
         })
 
