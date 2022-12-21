@@ -3,6 +3,7 @@ const cors = require('cors')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
+const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
 
 const app = express()
 const port = process.env.PORT || 5000;
@@ -38,7 +39,9 @@ async function run() {
         const categoriesCollection = client.db('furniClaim').collection('categories');
         const productsCollection = client.db('furniClaim').collection('products');
         const usersCollection = client.db('furniClaim').collection('users');
-        const OrdersCollectcion = client.db('furniClaim').collection('orders');
+        const OrdersCollection = client.db('furniClaim').collection('orders');
+        const paymentsCollection = client.db('furniClaim').collection('payments');
+
 
         app.post('/jwt', async (req, res) => {
             const user = req.body;
@@ -60,7 +63,9 @@ async function run() {
         })
 
         app.get('/products', async (req, res) => {
-            const query = {};
+            const query = {
+                availabilty: true
+            };
             const products = await productsCollection.find(query).sort({ "_id": -1 }).toArray();
             res.send(products)
         })
@@ -72,7 +77,10 @@ async function run() {
 
         app.get('/product/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
-            const filter = { email: email }
+            const filter = {
+                email: email,
+                availabilty: true
+            }
             const result = await productsCollection.find(filter).toArray()
             res.send(result)
         })
@@ -130,6 +138,16 @@ async function run() {
             res.send(result)
         })
 
+        app.get('/products/client/:email', async (req, res) => {
+            const email = req.params.email;
+            const filter = {
+                sellerEmail: email,
+                availabilty: false
+            }
+            const result = await OrdersCollection.find(filter).toArray()
+            res.send(result)
+        })
+
         app.get('/users', async (req, res) => {
             const query = {}
             const result = await usersCollection.find(query).toArray()
@@ -145,6 +163,14 @@ async function run() {
 
         app.post('/users', async (req, res) => {
             const user = req.body;
+            const email = user.email
+            const query = {
+                email: email
+            }
+            const userExist = await usersCollection.find(query).toArray()
+            if (userExist.length) {
+                return
+            }
             const result = await usersCollection.insertOne(user)
             res.send(result)
         })
@@ -194,21 +220,87 @@ async function run() {
 
         app.post('/orders', async (req, res) => {
             const order = req.body;
-            const result = await OrdersCollectcion.insertOne(order)
+            const query = {
+                clientEmail: order.clientEmail,
+                productName: order.productName
+            }
+            const bookOrder = await OrdersCollection.find(query).toArray()
+            if (bookOrder.length) {
+                const message = `You already have added ${order.productName} on your cart.`
+                return res.send({ acknowledged: false, message })
+            }
+            const result = await OrdersCollection.insertOne(order)
             res.send(result)
+        })
+
+        app.post('/create-payment-intent', async (req, res) => {
+            const booking = req.body;
+            const price = booking.price;
+            const amount = price * 100;
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                currency: 'usd',
+                amount: amount,
+                "payment_method_types": [
+                    "card"
+                ],
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        })
+
+        app.post('/payments', async (req, res) => {
+            const payment = req.body;
+            const result = await paymentsCollection.insertOne(payment)
+            const id = payment.bookingId;
+            const filter = { _id: ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    availabilty: false,
+                    transactionId: payment.transactionId
+                }
+            }
+            const updateResult = await OrdersCollection.updateOne(filter, updateDoc)
+            res.send(result)
+        })
+
+        app.put(`/product/update/:id`, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true }
+            const updatedDoc = {
+                $set: {
+                    availabilty: false
+                }
+            }
+            const updateProduct = await productsCollection.updateOne(filter, updatedDoc, options)
+            res.send(updateProduct)
         })
 
         app.get('/orders', async (req, res) => {
             const email = req.query.email;
             const filter = { clientEmail: email }
-            const result = await OrdersCollectcion.find(filter).toArray()
+            const result = await OrdersCollection.find(filter).toArray()
+            res.send(result)
+        })
+
+        app.get('/allorders', async (req, res) => {
+            const query = {}
+            const result = await OrdersCollection.find(query).toArray()
+            res.send(result)
+        })
+        app.get('/order/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = await OrdersCollection.findOne(query)
             res.send(result)
         })
 
         app.delete('/order/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) }
-            const result = await OrdersCollectcion.deleteOne(filter)
+            const result = await OrdersCollection.deleteOne(filter)
             res.send(result)
         })
 
